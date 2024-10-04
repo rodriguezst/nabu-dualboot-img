@@ -13,9 +13,31 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
-      - name: Download ota
+      - name: Setup tools
         run: |
-          wget ${{ matrix.ota_url }} -O ota.tgz
-          tar zxvf ota.tgz
-          find .
+          wget -nv "https://github.com/WOA-Project/mu_andromeda_platforms/raw/main/ImageResources/mkbootimg.py"
+          wget -nv "https://github.com/WOA-Project/SurfaceDuo-Guides/raw/main/Files/unpack_bootimg.py"
+          wget -nv "https://github.com/woa-msmnile/DualBootKernelPatcher/releases/download/v1.2.0.0/DualBootKernelPatcher-Linux-x64.zip"
+          unzip DualBootKernelPatcher-Linux-x64.zip
+          wget -nv "https://github.com/woa-msmnile/DualBootKernelPatcher/releases/download/v1.2.0.0/Shellcodes.zip"
+          unzip Shellcodes.zip
+          wget -nv "https://github.com/woa-msmnile/DualBootKernelPatcher/releases/download/v1.2.0.0/Config.zip"
+          unzip Config.zip
+          chmod +x DualBootKernelPatcher
+      - name: Download & patch boot image
+        run: |
+          mkdir -p ota
+          pushd ota
+          wget -nv ${{ matrix.ota_url }} -O ota.tgz
+          tar zxvf ota.tgz --wildcards --no-anchored 'boot.img'
+          find . -type f -name 'boot.img' -exec cp '{}' ../ ';'
+          popd
+          rm -rf ota
+          python3 ./unpack_bootimg.py --boot_img ./boot.img --format=mkbootimg | tee mkbootimg_args
+          ./DualBootKernelPatcher out/kernel SM8150_EFI.fd out/PatchedKernel Config/DualBoot.Sm8150.cfg ShellCode.Nabu.bin
+          sed -i 's/out\/kernel/out\/PatchedKernel/g' mkbootimg_args
+          python3 ./mkbootimg.py -o boot_patched.img $(cat mkbootimg_args)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: patched-image
+          path: boot_patched.img
