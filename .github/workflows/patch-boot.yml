@@ -11,6 +11,8 @@ jobs:
         include:
           - name: Xiaomi_HyperOS_Global_1.0.5.0
             url: https://cdnorg.d.miui.com/OS1.0.5.0.TKXMIXM/nabu_global_images_OS1.0.5.0.TKXMIXM_20240826.0000.00_13.0_global_e32cdbaf9f.tgz
+          - name: Xiaomi_HyperOS_Europe_1.0.5.0
+            url: https://cdnorg.d.miui.com/OS1.0.5.0.TKXEUXM/nabu_eea_global_images_OS1.0.5.0.TKXEUXM_20240827.0000.00_13.0_eea_985fdcfd4e.tgz
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
