@@ -5,6 +5,28 @@ on:
   workflow_dispatch:
 
 jobs:
+  build-uefi:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: map220v/MU-sm8150pkg
+          ref: nabu-secureboot
+      - name: Build UEFI
+        run: |
+          docker build -t mu:v1 .
+          docker run -v $(pwd):/build/ mu:v1 ./build_uefi.py -d xiaomi-nabu
+          cp Build/SurfaceDuo1Pkg/RELEASE_CLANG38/FV/SM8150_EFI.fd SM8150_EFI_SB.fd
+          #sed -i 's/SECURE_BOOT_ENABLE .*/SECURE_BOOT_ENABLE = 0/g' Platforms/SurfaceDuo1Pkg/SurfaceDuo1.dsc
+          #sed -i 's/DEFAULT_KEYS .*/DEFAULT_KEYS = FALSE/g' Platforms/SurfaceDuo1Pkg/SurfaceDuo1.dsc
+          #docker run -v $(pwd):/build/ mu:v1 ./build_uefi.py -d xiaomi-nabu
+          #mv Build/SurfaceDuo1Pkg/RELEASE_CLANG38/FV/SM8150_EFI.fd SM8150_EFI_NOSB.fd
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SM8150_EFI.fd
+          path: |
+            SM8150_EFI_SB.fd
+            #SM8150_EFI_NOSB.fd
   patch:
     strategy:
       matrix:
