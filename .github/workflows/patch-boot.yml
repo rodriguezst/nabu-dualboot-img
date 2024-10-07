@@ -5,31 +5,56 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-uefi:
+  build-uefi-secureboot:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           repository: map220v/MU-sm8150pkg
           ref: nabu-secureboot
-      - name: Build UEFI
+          path: MU
+      - name: Build UEFI (SB)
         run: |
+          cd MU
           docker build -t mu:v1 .
           docker run -v $(pwd):/build/ mu:v1 ./build_uefi.py -d xiaomi-nabu
-          cp Build/SurfaceDuo1Pkg/RELEASE_CLANG38/FV/SM8150_EFI.fd SM8150_EFI_SB.fd
+          find . -type f -name 'SM8150_EFI.fd' -exec cp '{}' ../SM8150_EFI_SB.fd ';'
+          # TODO: Find a way to build this same branch with secure boot disabled
+          #sudo git reset --hard && sudo git clean -fdx
           #sed -i 's/SECURE_BOOT_ENABLE .*/SECURE_BOOT_ENABLE = 0/g' Platforms/SurfaceDuo1Pkg/SurfaceDuo1.dsc
           #sed -i 's/DEFAULT_KEYS .*/DEFAULT_KEYS = FALSE/g' Platforms/SurfaceDuo1Pkg/SurfaceDuo1.dsc
           #docker run -v $(pwd):/build/ mu:v1 ./build_uefi.py -d xiaomi-nabu
-          #mv Build/SurfaceDuo1Pkg/RELEASE_CLANG38/FV/SM8150_EFI.fd SM8150_EFI_NOSB.fd
+          #find . -type f -name 'SM8150_EFI.fd' -exec cp '{}' ../SM8150_EFI_NOSB.fd ';'
       - uses: actions/upload-artifact@v4
         with:
-          name: SM8150_EFI.fd
+          name: SM8150_EFI_SB.fd
           path: |
             SM8150_EFI_SB.fd
-            #SM8150_EFI_NOSB.fd
+
+  build-uefi-no-secureboot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: woa-msmnile/msmnilePkg
+          ref: main
+          path: MU
+      - name: Build UEFI (NOSB)
+        run: |
+          cd MU
+          docker build -t mu:v1 .
+          docker run -v $(pwd):/build/ mu:v1 ./build_uefi.py -d xiaomi-nabu
+          find . -type f -name 'SM8150_EFI.fd' -exec cp '{}' ../SM8150_EFI_NOSB.fd ';'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SM8150_EFI_NOSB.fd
+          path: |
+            SM8150_EFI_NOSB.fd
   patch:
+    needs: [build-uefi-secureboot,build-uefi-no-secureboot]
     strategy:
       matrix:
+        uefi-type: [SB, NOSB]
         include:
           - name: Xiaomi_HyperOS_Global_1.0.5.0
             url: https://cdnorg.d.miui.com/OS1.0.5.0.TKXMIXM/nabu_global_images_OS1.0.5.0.TKXMIXM_20240826.0000.00_13.0_global_e32cdbaf9f.tgz
@@ -38,6 +63,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: SM8150_EFI_${{ matrix.uefi-type }}.fd
       - name: Setup tools
         run: |
           wget -nv "https://github.com/WOA-Project/mu_andromeda_platforms/raw/main/ImageResources/mkbootimg.py"
@@ -59,10 +87,10 @@ jobs:
           popd
           rm -rf ota
           python3 ./unpack_bootimg.py --boot_img ./boot.img --format=mkbootimg | tee mkbootimg_args
-          ./DualBootKernelPatcher out/kernel SM8150_EFI.fd out/PatchedKernel Config/DualBoot.Sm8150.cfg ShellCode.Nabu.bin
+          ./DualBootKernelPatcher out/kernel SM8150_EFI_${{ matrix.uefi-type }}.fd out/PatchedKernel Config/DualBoot.Sm8150.cfg ShellCode.Nabu.bin
           sed -i 's/out\/kernel/out\/PatchedKernel/g' mkbootimg_args
           python3 ./mkbootimg.py -o boot_patched.img $(cat mkbootimg_args)
       - uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.name }}
+          name: ${{ matrix.name }}_${{ matrix.uefi-type }}
           path: boot_patched.img
