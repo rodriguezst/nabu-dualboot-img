@@ -19,12 +19,6 @@ jobs:
           docker build -t mu:v1 .
           docker run -v $(pwd):/build/ mu:v1 ./build_uefi.py -d xiaomi-nabu
           find . -type f -name 'SM8150_EFI.fd' -exec cp '{}' ../SM8150_EFI_SB.fd ';'
-          # TODO: Find a way to build this same branch with secure boot disabled
-          #sudo git reset --hard && sudo git clean -fdx
-          #sed -i 's/SECURE_BOOT_ENABLE .*/SECURE_BOOT_ENABLE = 0/g' Platforms/SurfaceDuo1Pkg/SurfaceDuo1.dsc
-          #sed -i 's/DEFAULT_KEYS .*/DEFAULT_KEYS = FALSE/g' Platforms/SurfaceDuo1Pkg/SurfaceDuo1.dsc
-          #docker run -v $(pwd):/build/ mu:v1 ./build_uefi.py -d xiaomi-nabu
-          #find . -type f -name 'SM8150_EFI.fd' -exec cp '{}' ../SM8150_EFI_NOSB.fd ';'
       - uses: actions/upload-artifact@v4
         with:
           name: SM8150_EFI_SB.fd
@@ -35,13 +29,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
-          repository: woa-msmnile/msmnilePkg
-          ref: main
+          repository: map220v/MU-sm8150pkg
+          ref: nabu-secureboot
           path: MU
       - name: Build UEFI (NOSB)
         run: |
           cd MU
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git am ../0001-Revert-Enable-Secure-Boot.patch
           docker build -t mu:v1 .
           docker run -v $(pwd):/build/ mu:v1 ./build_uefi.py -d xiaomi-nabu
           find . -type f -name 'SM8150_EFI.fd' -exec cp '{}' ../SM8150_EFI_NOSB.fd ';'
