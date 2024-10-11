@@ -61,6 +61,10 @@ jobs:
             url: https://cdnorg.d.miui.com/OS1.0.5.0.TKXEUXM/nabu_eea_global_images_OS1.0.5.0.TKXEUXM_20240827.0000.00_13.0_eea_985fdcfd4e.tgz
     runs-on: ubuntu-latest
     steps:
+      - id: time
+        uses: boredland/get-time-action@2.0.0
+        with:
+          format: 'YYYYMMDD'
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
@@ -98,9 +102,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ github.sha }}
+          tag_name: ${{ steps.time.outputs.time }}
           target_commitish: ${{ github.sha }}
-          name: DualBoot UEFI (${{ github.sha }})
+          name: DualBoot UEFI (${{ steps.time.outputs.time }})
           body_path: README.md
           draft: false
           prerelease: false
