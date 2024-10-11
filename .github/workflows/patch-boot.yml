@@ -80,7 +80,7 @@ jobs:
         run: |
           mkdir -p ota
           pushd ota
-          wget -nv ${{ matrix.url }} -O ota.tgz
+          wget -nv --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0 ${{ matrix.url }} -O ota.tgz
           tar zxvf ota.tgz --wildcards --no-anchored 'boot.img'
           find . -type f -name 'boot.img' -exec cp '{}' ../ ';'
           popd
