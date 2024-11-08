@@ -9,6 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           repository: map220v/MU-sm8150pkg
           ref: nabu-secureboot
@@ -16,6 +17,11 @@ jobs:
       - name: Build UEFI (SB)
         run: |
           cd MU
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git submodule update --init MU_BASECORE
+          sed -i 's/Zeex/wyrover/g' MU_BASECORE/.gitmodules
+          git submodule update --init --recursive
           docker build -t mu:v1 .
           docker run -v $(pwd):/build/ mu:v1 ./build_uefi.py -d xiaomi-nabu
           find . -type f -name 'SM8150_EFI.fd' -exec cp '{}' ../SM8150_EFI_SB.fd ';'
@@ -45,6 +51,9 @@ jobs:
           cd MU
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git submodule update --init MU_BASECORE
+          sed -i 's/Zeex/wyrover/g' MU_BASECORE/.gitmodules
+          git submodule update --init --recursive
           git am ../0001-Revert-Enable-Secure-Boot.patch
           docker build -t mu:v1 .
           docker run -v $(pwd):/build/ mu:v1 ./build_uefi.py -d xiaomi-nabu
