@@ -108,7 +108,7 @@ jobs:
           python3 ./unpack_bootimg.py --boot_img ./boot.img --format=mkbootimg | tee mkbootimg_args
           ./DualBootKernelPatcher out/kernel SM8150_EFI_${{ matrix.uefi-type }}.fd out/PatchedKernel Config/DualBoot.Sm8150.cfg ShellCode.Nabu.bin
           sed -i 's/out\/kernel/out\/PatchedKernel/g' mkbootimg_args
-          python3 ./mkbootimg.py -o boot_${{ matrix.name }}_${{ matrix.uefi-type }}.img $(cat mkbootimg_args)
+          python3 ./mkbootimg.py -o boot_${{ matrix.name }}_${{ matrix.uefi-type }}.img $(cat mkbootimg_args) --pagesize 4096 --base 0x0
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.name }}_${{ matrix.uefi-type }}
