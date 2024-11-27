@@ -19,11 +19,17 @@ jobs:
           docker build -t mu:v1 .
           docker run -v $(pwd):/build/ mu:v1 ./build_uefi.py -d xiaomi-nabu
           find . -type f -name 'SM8150_EFI.fd' -exec cp '{}' ../SM8150_EFI_SB.fd ';'
+          find . -type f -name 'xiaomi-nabu.img' -exec cp '{}' ../uefi_secureboot.img ';'
       - uses: actions/upload-artifact@v4
         with:
           name: SM8150_EFI_SB.fd
           path: |
             SM8150_EFI_SB.fd
+      - uses: actions/upload-artifact@v4
+        with:
+          name: uefi_secureboot.img
+          path: |
+            uefi_secureboot.img
 
   build-uefi-no-secureboot:
     runs-on: ubuntu-latest
@@ -43,11 +49,17 @@ jobs:
           docker build -t mu:v1 .
           docker run -v $(pwd):/build/ mu:v1 ./build_uefi.py -d xiaomi-nabu
           find . -type f -name 'SM8150_EFI.fd' -exec cp '{}' ../SM8150_EFI_NOSB.fd ';'
+          find . -type f -name 'xiaomi-nabu.img' -exec cp '{}' ../uefi_no_secureboot.img ';'
       - uses: actions/upload-artifact@v4
         with:
           name: SM8150_EFI_NOSB.fd
           path: |
             SM8150_EFI_NOSB.fd
+      - uses: actions/upload-artifact@v4
+        with:
+          name: uefi_no_secureboot.img
+          path: |
+            uefi_no_secureboot.img
   patch:
     needs: [build-uefi-secureboot,build-uefi-no-secureboot]
     strategy:
@@ -102,6 +114,7 @@ jobs:
           name: ${{ matrix.name }}_${{ matrix.uefi-type }}
           path: boot_${{ matrix.name }}_${{ matrix.uefi-type }}.img
       - name: Release assets
+        if: github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
