@@ -1,4 +1,4 @@
-name: patch-boot
+name: build
 
 on:
   push:
@@ -73,21 +73,11 @@ jobs:
           name: uefi_no_secureboot.img
           path: |
             uefi_no_secureboot.img
-  patch:
+  build-installer:
     needs: [build-uefi-secureboot,build-uefi-no-secureboot]
     strategy:
       matrix:
         uefi-type: [SB, NOSB]
-        name: [Xiaomi_HyperOS_Global_1.0.6.0, Xiaomi_HyperOS_Europe_1.0.6.0, Xiaomi_HyperOS_India_1.0.9.0, Xiaomi_HyperOS_China_1.0.3.0]
-        include:
-          - name: Xiaomi_HyperOS_Global_1.0.6.0
-            url: https://cdnorg.d.miui.com/OS1.0.6.0.TKXMIXM/nabu_global_images_OS1.0.6.0.TKXMIXM_20240914.0000.00_13.0_global_3693ddb728.tgz
-          - name: Xiaomi_HyperOS_Europe_1.0.6.0
-            url: https://cdnorg.d.miui.com/OS1.0.6.0.TKXEUXM/nabu_eea_global_images_OS1.0.6.0.TKXEUXM_20240914.0000.00_13.0_eea_dd27c36677.tgz
-          - name: Xiaomi_HyperOS_India_1.0.9.0
-            url: https://cdnorg.d.miui.com/OS1.0.9.0.TKXINXM/nabu_in_global_images_OS1.0.9.0.TKXINXM_20240914.0000.00_13.0_in_6851e32a0e.tgz
-          - name: Xiaomi_HyperOS_China_1.0.3.0
-            url: https://cdnorg.d.miui.com/OS1.0.3.0.TKXCNXM/nabu_images_OS1.0.3.0.TKXCNXM_20240516.0000.00_13.0_cn_ff15a7adfc.tgz
     runs-on: ubuntu-latest
     steps:
       - id: time
@@ -95,37 +85,33 @@ jobs:
         with:
           format: 'YYYYMMDD'
       - uses: actions/checkout@v4
+        with:
+          submodules: true
       - uses: actions/download-artifact@v4
         with:
           name: SM8150_EFI_${{ matrix.uefi-type }}.fd
-      - name: Setup tools
+      - name: Build Zip Installer (${{ matrix.uefi-type }})
         run: |
-          wget -nv "https://github.com/WOA-Project/mu_andromeda_platforms/raw/main/ImageResources/mkbootimg.py"
-          wget -nv "https://github.com/WOA-Project/SurfaceDuo-Guides/raw/main/Files/unpack_bootimg.py"
-          wget -nv "https://github.com/Project-Aloha/DualBootKernelPatcher/releases/download/v1.2.0.0/DualBootKernelPatcher-Linux-x64.zip"
-          unzip DualBootKernelPatcher-Linux-x64.zip
+          mv SM8150_EFI_${{ matrix.uefi-type }}.fd Flashable_UEFI_Installer/SM8150_EFI.fd
+          wget -nv "https://github.com/Project-Aloha/DualBootKernelPatcher/releases/download/v1.2.0.0/DualBootKernelPatcher-Linux-arm64.zip"
+          unzip DualBootKernelPatcher-Linux-arm64.zip
+          mv DualBootKernelPatcher Flashable_UEFI_Installer/DualBootKernelPatcher
+          chmod +x Flashable_UEFI_Installer/DualBootKernelPatcher
           wget -nv "https://github.com/Project-Aloha/DualBootKernelPatcher/releases/download/v1.2.0.0/Shellcodes.zip"
           unzip Shellcodes.zip
+          mv ShellCode.Nabu.bin Flashable_UEFI_Installer/ShellCode.Nabu.bin
           wget -nv "https://github.com/Project-Aloha/DualBootKernelPatcher/releases/download/v1.2.0.0/Config.zip"
           unzip Config.zip
-          chmod +x DualBootKernelPatcher
-      - name: Download & patch boot image
-        run: |
-          mkdir -p ota
-          pushd ota
-          wget -nv --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0 ${{ matrix.url }} -O ota.tgz
-          tar zxvf ota.tgz --wildcards --no-anchored 'boot.img'
-          find . -type f -name 'boot.img' -exec cp '{}' ../ ';'
-          popd
-          rm -rf ota
-          python3 ./unpack_bootimg.py --boot_img ./boot.img --format=mkbootimg | tee mkbootimg_args
-          ./DualBootKernelPatcher out/kernel SM8150_EFI_${{ matrix.uefi-type }}.fd out/PatchedKernel Config/DualBoot.Sm8150.cfg ShellCode.Nabu.bin
-          sed -i 's/out\/kernel/out\/PatchedKernel/g' mkbootimg_args
-          python3 ./mkbootimg.py -o boot_${{ matrix.name }}_${{ matrix.uefi-type }}.img $(cat mkbootimg_args) --pagesize 4096 --base 0x0
+          mv Config/DualBoot.Sm8150.cfg Flashable_UEFI_Installer/DualBoot.Sm8150.cfg
+          chmod +x Flashable_UEFI_Installer/DualBootKernelPatcher
+          cd Flashable_UEFI_Installer
+          ./pack.sh
+          mv installer.zip installer_${{ matrix.uefi-type }}.zip
       - uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.name }}_${{ matrix.uefi-type }}
-          path: boot_${{ matrix.name }}_${{ matrix.uefi-type }}.img
+          name: installer_${{ matrix.uefi-type }}.zip
+          path: |
+            Flashable_UEFI_Installer/installer_${{ matrix.uefi-type }}.zip
       - name: Release assets
         if: github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
@@ -134,9 +120,10 @@ jobs:
         with:
           tag_name: ${{ steps.time.outputs.time }}
           target_commitish: ${{ github.sha }}
-          name: DualBoot UEFI (${{ steps.time.outputs.time }})
+          name: DualBoot UEFI Installer (${{ steps.time.outputs.time }})
           body_path: README.md
           draft: false
           prerelease: false
           files: |
-            boot_${{ matrix.name }}_${{ matrix.uefi-type }}.img
+            Flashable_UEFI_Installer/installer_${{ matrix.uefi-type }}.zip
+

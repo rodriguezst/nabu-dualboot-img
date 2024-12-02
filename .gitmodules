@@ -1,0 +1,3 @@
+[submodule "Flashable_UEFI_Installer"]
+	path = Flashable_UEFI_Installer
+	url = https://github.com/rodriguezst/Flashable_UEFI_Installer.git
