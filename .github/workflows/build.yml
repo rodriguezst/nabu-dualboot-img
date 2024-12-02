@@ -22,8 +22,6 @@ jobs:
           git submodule update --init MU_BASECORE
           sed -i 's/Zeex/wyrover/g' MU_BASECORE/.gitmodules
           git submodule update --init --recursive
-          wget "https://github.com/Project-Aloha/mu_aloha_platforms/raw/71da65d7e8c4c52ea87da960883a792af728b310/Platforms/SurfaceDuo1Pkg/Device/xiaomi-nabu/Library/PlatformMemoryMapLib/PlatformMemoryMapLib.c"
-          mv PlatformMemoryMapLib.c Platforms/SurfaceDuo1Pkg/Device/xiaomi-nabu/Library/PlatformMemoryMapLib/PlatformMemoryMapLib.c
           docker build -t mu:v1 .
           docker run -v $(pwd):/build/ mu:v1 ./build_uefi.py -d xiaomi-nabu
           find . -type f -name 'SM8150_EFI.fd' -exec cp '{}' ../SM8150_EFI_SB.fd ';'
@@ -57,8 +55,6 @@ jobs:
           sed -i 's/Zeex/wyrover/g' MU_BASECORE/.gitmodules
           git submodule update --init --recursive
           git am ../0001-Revert-Enable-Secure-Boot.patch
-          wget "https://github.com/Project-Aloha/mu_aloha_platforms/raw/71da65d7e8c4c52ea87da960883a792af728b310/Platforms/SurfaceDuo1Pkg/Device/xiaomi-nabu/Library/PlatformMemoryMapLib/PlatformMemoryMapLib.c"
-          mv PlatformMemoryMapLib.c Platforms/SurfaceDuo1Pkg/Device/xiaomi-nabu/Library/PlatformMemoryMapLib/PlatformMemoryMapLib.c
           docker build -t mu:v1 .
           docker run -v $(pwd):/build/ mu:v1 ./build_uefi.py -d xiaomi-nabu
           find . -type f -name 'SM8150_EFI.fd' -exec cp '{}' ../SM8150_EFI_NOSB.fd ';'
