@@ -11,19 +11,17 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/checkout@v4
         with:
-          repository: map220v/MU-sm8150pkg
-          ref: nabu-secureboot
+          repository: Project-Aloha/mu_aloha_platforms
+          ref: main
           path: MU
       - name: Build UEFI (SB)
         run: |
           cd MU
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-          git submodule update --init MU_BASECORE
-          sed -i 's/Zeex/wyrover/g' MU_BASECORE/.gitmodules
           git submodule update --init --recursive
           docker build -t mu:v1 .
-          docker run -v $(pwd):/build/ mu:v1 ./build_uefi.py -d xiaomi-nabu
+          docker run -v $(pwd):/build/ mu:v1 ./build_uefi.py -d xiaomi-nabu -s 1
           find . -type f -name 'SM8150_EFI.fd' -exec cp '{}' ../SM8150_EFI_SB.fd ';'
           find . -type f -name 'xiaomi-nabu.img' -exec cp '{}' ../uefi_secureboot.img ';'
       - uses: actions/upload-artifact@v4
@@ -51,12 +49,9 @@ jobs:
           cd MU
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-          git submodule update --init MU_BASECORE
-          sed -i 's/Zeex/wyrover/g' MU_BASECORE/.gitmodules
           git submodule update --init --recursive
-          git am ../0001-Revert-Enable-Secure-Boot.patch
           docker build -t mu:v1 .
-          docker run -v $(pwd):/build/ mu:v1 ./build_uefi.py -d xiaomi-nabu
+          docker run -v $(pwd):/build/ mu:v1 ./build_uefi.py -d xiaomi-nabu -s 0
           find . -type f -name 'SM8150_EFI.fd' -exec cp '{}' ../SM8150_EFI_NOSB.fd ';'
           find . -type f -name 'xiaomi-nabu.img' -exec cp '{}' ../uefi_no_secureboot.img ';'
       - uses: actions/upload-artifact@v4
