@@ -22,6 +22,7 @@ jobs:
           git submodule update --init MU_BASECORE
           sed -i 's/Zeex/wyrover/g' MU_BASECORE/.gitmodules
           git submodule update --init --recursive
+          git am ../0003-UFS3.patch
           sed -i '/"Kernel"/s/Conv/Reserv/' Platforms/SurfaceDuo1Pkg/Device/xiaomi-nabu/Library/PlatformMemoryMapLib/PlatformMemoryMapLib.c
           docker build -t mu:v1 .
           docker run -v $(pwd):/build/ mu:v1 ./build_uefi.py -d xiaomi-nabu
@@ -56,6 +57,7 @@ jobs:
           sed -i 's/Zeex/wyrover/g' MU_BASECORE/.gitmodules
           git submodule update --init --recursive
           git am ../0001-Revert-Enable-Secure-Boot.patch
+          git am ../0003-UFS3.patch
           sed -i '/"Kernel"/s/Conv/Reserv/' Platforms/SurfaceDuo1Pkg/Device/xiaomi-nabu/Library/PlatformMemoryMapLib/PlatformMemoryMapLib.c
           docker build -t mu:v1 .
           docker run -v $(pwd):/build/ mu:v1 ./build_uefi.py -d xiaomi-nabu
