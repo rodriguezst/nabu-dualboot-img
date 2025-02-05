@@ -24,6 +24,7 @@ jobs:
           git submodule update --init --recursive
           git am ../0003-UFS3.patch
           sed -i '/"Kernel"/s/Conv/Reserv/' Platforms/SurfaceDuo1Pkg/Device/xiaomi-nabu/Library/PlatformMemoryMapLib/PlatformMemoryMapLib.c
+          cp ../DefaultDb.bin Platforms/SurfaceDuoFamilyPkg/Include/Resources/db.bin.p7
           docker build -t mu:v1 .
           docker run -v $(pwd):/build/ mu:v1 ./build_uefi.py -d xiaomi-nabu
           find . -type f -name 'SM8150_EFI.fd' -exec cp '{}' ../SM8150_EFI_SB.fd ';'
